@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MUSIC PLAYER</title>
+    <link href="https://pagecdn.io/lib/normalize/8.0.1/normalize.min.css" rel="stylesheet" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <link rel="stylesheet" href="./assest/iphone.css">
+    
+<body>
+    <div id="cover">
+        <div id="finding">
+            <div class="input">
+                <div class="search-btn">
+                    <i class="fas fa-search"></i>
+                </div>
+                <div class="space-into">
+                    <input type="text" value="" placeholder="Tìm kiếm">
+                </div>
+            </div>
+            <div class="cancel"></div>
+        </div>
+    <div id="overview">
+        <div class="blur">
+            <div class="now-play">Now playing:</div>
+            <div class="content">
+                <div class="content_name-of-song">
+                    <h3>Sóng gió - Jack</h3>
+                </div>
+                <div class="content_img">
+                    <div class="img-song"></div>
+                </div>
+            </div>
+            <div class="dashboard">
+                <div class="replay-btn">
+                    <i class="fas fa-undo-alt"></i>
+                </div>
+                <div class="previous-btn">
+                    <i class="fas fa-step-backward"></i>
+                </div>
+                <div class="play-pause-btn play">
+                    <div class="box-cover">
+                        <i class="fas fa-play"></i>
+                        <i class="fas fa-pause"></i>
+                    </div>
+                </div>
+                <div class="next-btn">
+                    <i class="fas fa-step-forward"></i>
+                </div>
+                <div class="random-btn">
+                    <i class="fas fa-random"></i>
+                </div>
+            </div>
+            <style data="change">
+            </style>
+            <input id="progress" class="progress" type="range" value="0" step="1" min="0" max="100">
+            <audio id="audio" src=""></audio>
+        </div>
+    </div>
+    </div>
+    <div id="list-song">
+        <div class="blurlist-song">
+            <div class="header"><h3>Danh sách phát</h3></div>
+            <div class="body"></div>
+        </div>
+    </div>
+    <script src="maingit.js"></script>
+</body>
+</html>
