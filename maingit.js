@@ -2,6 +2,7 @@
 const $ = document.querySelector.bind(document)
 const $$ = document.querySelectorAll.bind(document)
 
+
 const intoFind = $('#finding')
 const find = $('#finding .input')
 const findBtn = $('#finding .search-btn')
@@ -19,6 +20,7 @@ const nextSong = $('.next-btn')
 const listSong = $('#list-song')
 const random = $('.random-btn')
 const listenAgain = $('.replay-btn')
+const body = $('body')
 /**
  * 1. Render song
  * 2. Scroll top
@@ -130,15 +132,19 @@ const app = {
     isAgain: false,
     // tải bài hát
     loadCurrentSong: function() {
-        heading.innerHTML = `<h3>${this.songs[this.currentSong].name}</h3>`
-        imgCurent.style.backgroundImage = `url('${this.songs[this.currentSong].img}')`
-        audio.src = `${this.songs[this.currentSong].song}`
-        listSong.style.backgroundImage = `url('${this.songs[this.currentSong].img}')`
+        const currentSong = this.songs[this.currentSong];
+        heading.innerHTML = `<h3>${currentSong.name}</h3>`
+        imgCurent.style.backgroundImage = `url('${currentSong.img}')`
+        audio.src = `${currentSong.song}`
+        body.style.backgroundImage = `url('${currentSong.img}')`
+        $$('.body .song').forEach(function(song) {
+            song.classList.remove('red-background')
+        })
+        $(`.body .song${currentSong.id}`).classList.add('red-background');
     },
 
     handleEvent: function() {
         const _this = this;
-
         // CD roll
         const CDRoll = imgCurent.animate([
             { transform: 'rotate(360deg)' }
@@ -159,7 +165,9 @@ const app = {
                 }, 500)
                 setTimeout(function() {
                     playPause.classList.add('play');
-                    playPause.classList.remove('pause');  
+                    playPause.classList.remove('pause');
+                    $(`.song${_this.songs[_this.currentSong].id} .cover-animation:nth-child(1)`).classList.remove('active')
+                    $(`.song${_this.songs[_this.currentSong].id} .cover-animation:nth-child(2)`).classList.remove('active')
                 }, 500)
                 CDRoll.pause()
             }
@@ -174,6 +182,8 @@ const app = {
                 setTimeout(function() {
                     playPause.classList.remove('play');
                     playPause.classList.add('pause');
+                    $(`.song${_this.songs[_this.currentSong].id} .cover-animation:nth-child(1)`).classList.add('active')
+                    $(`.song${_this.songs[_this.currentSong].id} .cover-animation:nth-child(2)`).classList.add('active')
                 }, 500)
                 _this.increaseVolume()
                 CDRoll.play()
@@ -212,6 +222,8 @@ const app = {
             if(audio.currentTime === audio.duration) {
                 if(_this.isPlay == true) {
                     audio.autoplay = true;
+                    $(`.song${_this.songs[_this.currentSong].id} .cover-animation:nth-child(1)`).classList.add('active')
+                    $(`.song${_this.songs[_this.currentSong].id} .cover-animation:nth-child(2)`).classList.add('active')
                 }
                 _this.decreaseVolume()
                 CDRoll.currentTime = 0;
@@ -219,11 +231,12 @@ const app = {
             }
         }
 
-
         // next
         nextSong.onclick = function() {
             if(_this.isPlay == true) {
                 audio.autoplay = true;
+                $(`.song${_this.songs[_this.currentSong].id} .cover-animation:nth-child(1)`).classList.add('active')
+                $(`.song${_this.songs[_this.currentSong].id} .cover-animation:nth-child(2)`).classList.add('active')
             }
             _this.decreaseVolume()
             CDRoll.currentTime = 0;
@@ -233,6 +246,8 @@ const app = {
         previousSong.onclick = function() {
             if(_this.isPlay == true) {
                 audio.autoplay = true;
+                $(`.song${_this.songs[_this.currentSong].id} .cover-animation:nth-child(1)`).classList.remove('active')
+                $(`.song${_this.songs[_this.currentSong].id} .cover-animation:nth-child(2)`).classList.remove('active')
             }
             _this.decreaseVolume()
             CDRoll.currentTime = 0;
@@ -254,6 +269,21 @@ const app = {
                 listenAgain.classList.toggle('active', _this.isAgain)
             }, 150)
         }
+
+        // next song by click
+        $$('.body .song > div:nth-child(1)').forEach(function(song, index) {
+            song.onclick = function() {
+                $(`.song${_this.songs[_this.currentSong].id} .cover-animation:nth-child(1)`).classList.remove('active')
+                $(`.song${_this.songs[_this.currentSong].id} .cover-animation:nth-child(2)`).classList.remove('active')
+                _this.currentSong = index
+                if(_this.isPlay == true) {
+                    audio.autoplay = true;
+                }
+                _this.decreaseVolume()
+                CDRoll.currentTime = 0;
+                _this.loadCurrentSong()
+            }
+        })
     },
 
     // next and previous
@@ -339,20 +369,34 @@ const app = {
     rederSongs: function() {
         const htmls = this.songs.map(song => 
             `
-            <div class="song">
-            <div class="song_img">
+            <div class="song song${song.id}">
                 <div>
-                    <img src="${song.img}" alt="">
+                    <div class="song_img">
+                        <div>
+                            <img src="${song.img}" alt="">
+                        </div>
+                    </div>
+                    <div class="song_content">
+                        <h4>${song.name}</h4>
+                        <p>${song.singer}</p>
+                    </div>
+                    <div class="current-song">
+                        <div class="cover-animation">
+                            <div></div>
+                            <div></div>
+                            <div></div>
+                        </div>
+                        <div class="cover-animation">
+                            <div></div>
+                            <div></div>
+                            <div></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="song_more">
+                    <i class="fas fa-ellipsis-h"></i>
                 </div>
             </div>
-            <div class="song_content">
-                <h4>${song.name}</h4>
-                <p>${song.singer}</p>
-            </div>
-            <div class="song_more">
-                <i class="fas fa-ellipsis-h"></i>
-            </div>
-        </div>
             `)
         $('#list-song .body').innerHTML = htmls.join('')
     },
