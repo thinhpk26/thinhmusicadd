@@ -377,8 +377,7 @@ h1 {
 #list-song .header {
     position: sticky;
     top: 0;
-    background-image: linear-gradient(#6f6f6f, #636363);
-    box-shadow: rgba(0, 0, 0, 0.5);
+    background-image: linear-gradient(#616161, #616161);
     text-align: center;
     height: 49px;
     z-index: 1;

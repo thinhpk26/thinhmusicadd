@@ -257,7 +257,15 @@ const app = {
         // box-time
         function increaseTime() {
             if(!isNaN(audio.duration)){
-                boxTime.innerHTML = `<p>${(audio.currentTime - audio.currentTime % 60) / 60}:${Math.floor(audio.currentTime % 60)} / ${(audio.duration - audio.duration % 60) / 60}:${Math.floor(audio.duration % 60)}<p>`
+                if(Math.floor(audio.currentTime % 60) < 10 && Math.floor(audio.duration % 60) < 10) {
+                    boxTime.innerHTML = `<p>${(audio.currentTime - audio.currentTime % 60) / 60}:0${Math.floor(audio.currentTime % 60)} / ${(audio.duration - audio.duration % 60) / 60}:0${Math.floor(audio.duration % 60)}<p>`
+                } else if(Math.floor(audio.currentTime % 60) < 10) {
+                    boxTime.innerHTML = `<p>${(audio.currentTime - audio.currentTime % 60) / 60}:0${Math.floor(audio.currentTime % 60)} / ${(audio.duration - audio.duration % 60) / 60}:${Math.floor(audio.duration % 60)}<p>`
+                } else if(Math.floor(audio.duration % 60) < 10) {
+                    boxTime.innerHTML = `<p>${(audio.currentTime - audio.currentTime % 60) / 60}:${Math.floor(audio.currentTime % 60)} / ${(audio.duration - audio.duration % 60) / 60}:0${Math.floor(audio.duration % 60)}<p>`
+                }else {  
+                    boxTime.innerHTML = `<p>${(audio.currentTime - audio.currentTime % 60) / 60}:${Math.floor(audio.currentTime % 60)} / ${(audio.duration - audio.duration % 60) / 60}:${Math.floor(audio.duration % 60)}<p>`
+                }
             }
         }
         audio.addEventListener('timeupdate', increaseTime)
@@ -271,17 +279,40 @@ const app = {
         audio.addEventListener('timeupdate', timeUp)
 
         // seek - tua
-        progress.onmousemove = function(e) {
+        // kéo thả
+        progress.addEventListener('touchmove', function(ev) {
+            audio.removeEventListener('timeupdate', timeUp)
             thumbInto.style.removeProperty("animation") 
-            timeLine.style.width = `${e.clientX - 8}px`
+            const touchLocation = ev.targetTouches[0]
+            timeLine.style.width = touchLocation.pageX - 7 + 'px';
+            thumb.style.display = 'inline-flex'
+            thumb.style.transform = `translateX(${touchLocation.pageX - 14}px)`
+            setTimeout(function() {
+                thumbInto.style.animation = 'decreaseSize 1s ease forwards'
+            }, 3000)
+        })
+
+        progress.addEventListener('touchend', function() {
+            audio.currentTime =  timeLine.offsetWidth / (progress.offsetWidth / audio.duration)
+            CDRoll.currentTime = audio.currentTime % 25 * 1000;
+            audio.addEventListener('timeupdate', timeUp)
+            _this.increaseVolume();
+        })
+
+        // click
+        progress.onclick = function(e) {
+            thumbInto.style.removeProperty("animation") 
+            timeLine.style.width = `${e.offsetX}px`
+            console.log(timeLine.style.width)
+            console.log(e.clientX)
             audio.currentTime =  timeLine.offsetWidth / (progress.offsetWidth / audio.duration)
             CDRoll.currentTime = audio.currentTime % 25 * 1000;
             _this.increaseVolume();
             thumb.style.display = 'inline-flex'
-            thumb.style.transform = `translateX(${e.clientX - 16}px)`
+            thumb.style.transform = `translateX(${e.offsetX}px)`
             setTimeout(function() {
                 thumbInto.style.animation = 'decreaseSize 1s ease forwards'
-            }, 2000)
+            }, 3000)
         }
 
         // auto next
