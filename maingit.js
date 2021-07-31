@@ -6,6 +6,7 @@ const $$ = document.querySelectorAll.bind(document)
 const intoFind = $('#finding')
 const find = $('#finding .input')
 const findBtn = $('#finding .search-btn')
+const result = $('#finding .result')
 const space = $('.input .space-into input')
 const cancel = $('#finding .cancel')
 const background = $('#overview')
@@ -14,13 +15,20 @@ const imgCurent = $('.content .img-song')
 const audio = $('#audio')
 const playPause = $('.play-pause-btn')
 const playPauseBox = $('.box-cover')
-const progress = $('#progress')
+//
+const progress = $('#overview .progress')
+const timeLine = $('#overview .progress .line-color')
+const thumb = $('#overview .progress .thumb')
+const thumbInto = $('#overview .progress .thumb .thumb-into')
+const boxTime = $('#overview .progress .box-time')
+//
 const previousSong = $('.previous-btn')
 const nextSong = $('.next-btn')
 const listSong = $('#list-song')
 const random = $('.random-btn')
 const listenAgain = $('.replay-btn')
 const body = $('body')
+const cover = $('#cover')
 /**
  * 1. Render song
  * 2. Scroll top
@@ -110,11 +118,15 @@ const app = {
 
     // tìm kiếm
     finding: function() {
+        const _this = this
+        // focus vào input
         find.onclick = function() {
             space.focus()
             space.select()
+            result.style.display = 'block';
         }
         space.onfocus = function() {
+            find.style.borderRadius = '8px'
             find.style.animation = 'focusinput 0.5s ease forwards';
             setTimeout(function() {
                 cancel.innerHTML = `<p>Hủy<p>`;
@@ -123,7 +135,51 @@ const app = {
         }
         space.onblur = function() {
             find.style.removeProperty("animation")
+            find.style.borderRadius = '8px';
             cancel.innerHTML = '';
+            result.style.display = 'none';
+        }
+
+        // khi điền chữ vào input
+        space.oninput = function(e) {
+            space.onselect = function() {
+                find.style.borderRadius = '8px 8px 0 0';
+            }
+            if(e.target.value === '') {
+                result.innerHTML = '';
+                find.style.borderRadius = '8px'
+            } else {
+                const htmls = _this.songs.map(function(song, index) {
+                    if(song.name.includes(e.target.value)) {
+                        return`
+                            <a href="#song${song.id}">
+                                <img src="${song.img}" alt="">
+                                <p>${song.name}</p>
+                            </a>
+                            `
+                    }
+                })
+                result.innerHTML = htmls.join('')
+                if(htmls !== []) {
+                    find.style.borderRadius = '8px 8px 0 0';
+                }
+            }
+        }
+
+        // khi chọn bài
+        result.onmousedown = function(e) {
+            space.onblur = function(e) {
+                e.preventDefault()
+            }
+            result.onclick = function() {
+                result.style.display = 'none';
+                find.style.borderRadius = '8px';
+            }
+            cancel.onclick = function() {
+                result.style.display = 'none';
+                find.style.borderRadius = '8px';
+            }
+            space.value = '';
         }
     },
     isPlay: false,
@@ -196,25 +252,36 @@ const app = {
             }
         }
 
-        // chạy progress
+        // process ---------------------------------------------------------------------------------------------------------------> 1
+
+        // box-time
+        function increaseTime() {
+            if(!isNaN(audio.duration)){
+                boxTime.innerHTML = `<p>${(audio.currentTime - audio.currentTime % 60) / 60}:${Math.floor(audio.currentTime % 60)} / ${(audio.duration - audio.duration % 60) / 60}:${Math.floor(audio.duration % 60)}<p>`
+            }
+        }
+        audio.addEventListener('timeupdate', increaseTime)
         const timeUp = function() {
-            const timeUpdate = Math.floor(audio.currentTime / audio.duration * 100);
+            const timeUpdate = progress.offsetWidth / audio.duration;
             if(timeUpdate) {
-                progress.value = timeUpdate;
+                timeLine.style.width = `${Math.floor(timeUpdate * audio.currentTime)}px`;
+                thumb.style.transform = `translateX(${Math.floor(timeUpdate * audio.currentTime) - 7}px)`
             }
         }
         audio.addEventListener('timeupdate', timeUp)
 
-        // Seek - tua
-        progress.onchange = function(e) {
-            const seekTime = audio.duration / 100 * e.target.value;
-            audio.currentTime = seekTime
+        // seek - tua
+        progress.onmousemove = function(e) {
+            thumbInto.style.removeProperty("animation") 
+            timeLine.style.width = `${e.clientX - 8}px`
+            audio.currentTime =  timeLine.offsetWidth / (progress.offsetWidth / audio.duration)
             CDRoll.currentTime = audio.currentTime % 25 * 1000;
             _this.increaseVolume();
-            audio.addEventListener('timeupdate', timeUp)
-        }
-        progress.oninput = function() {
-            audio.removeEventListener('timeupdate', timeUp)
+            thumb.style.display = 'inline-flex'
+            thumb.style.transform = `translateX(${e.clientX - 16}px)`
+            setTimeout(function() {
+                thumbInto.style.animation = 'decreaseSize 1s ease forwards'
+            }, 2000)
         }
 
         // auto next
@@ -222,8 +289,8 @@ const app = {
             if(audio.currentTime === audio.duration) {
                 if(_this.isPlay == true) {
                     audio.autoplay = true;
-                    $(`.song${_this.songs[_this.currentSong].id} .cover-animation:nth-child(1)`).classList.add('active')
-                    $(`.song${_this.songs[_this.currentSong].id} .cover-animation:nth-child(2)`).classList.add('active')
+                    $(`.song${_this.songs[_this.currentSong].id} .cover-animation:nth-child(1)`).classList.remove('active')
+                    $(`.song${_this.songs[_this.currentSong].id} .cover-animation:nth-child(2)`).classList.remove('active')
                 }
                 _this.decreaseVolume()
                 CDRoll.currentTime = 0;
@@ -235,8 +302,8 @@ const app = {
         nextSong.onclick = function() {
             if(_this.isPlay == true) {
                 audio.autoplay = true;
-                $(`.song${_this.songs[_this.currentSong].id} .cover-animation:nth-child(1)`).classList.add('active')
-                $(`.song${_this.songs[_this.currentSong].id} .cover-animation:nth-child(2)`).classList.add('active')
+                $(`.song${_this.songs[_this.currentSong].id} .cover-animation:nth-child(1)`).classList.remove('active')
+                $(`.song${_this.songs[_this.currentSong].id} .cover-animation:nth-child(2)`).classList.remove('active')
             }
             _this.decreaseVolume()
             CDRoll.currentTime = 0;
@@ -284,22 +351,29 @@ const app = {
                 _this.loadCurrentSong()
             }
         })
+        $$('.body .song > div:nth-child(2)').forEach(function(song, index) {
+            song.onclick = function() {
+                
+            }
+        })
     },
 
     // next and previous
     // nextCurrentSong
-    nextCurrentSong: function() {
+    nextCurrentSong: function() {   //-------------------------------> 4
         this.currentSong = this.currentSong + 1;
-        progress.value = 0
+        timeLine.style.width = '0px';
+        thumb.style.display = 'none';
         if(this.currentSong >= this.songs.length){
             this.currentSong = 0
         }
         this.loadCurrentSong();
     },
     // previousCurrentSong
-    previousCurrentSong: function() {
+    previousCurrentSong: function() {   //-------------------------------> 5
         this.currentSong -= 1;
-        progress.value = 0
+        timeLine.style.width = '0px';
+        thumb.style.display = 'none';
         if(this.currentSong < 0){
             this.currentSong = 9;
         }
@@ -369,7 +443,7 @@ const app = {
     rederSongs: function() {
         const htmls = this.songs.map(song => 
             `
-            <div class="song song${song.id}">
+            <div id="song${song.id}" class="song song${song.id}">
                 <div>
                     <div class="song_img">
                         <div>
@@ -404,16 +478,26 @@ const app = {
     // Sroll top
     scrollTop: function() {
         const sizeImg = $('.content_img').offsetWidth;
-        const height = listSong.offsetHeight
+        let heightCover = $('#cover').offsetHeight
+        const body = $('body').offsetHeight;
+        $('#list-song').style.height = body - heightCover - 16 - 217 + 'px';
+        const ele = $('#list-song').offsetHeight
         document.onscroll = function() {
             const scrollTop = window.scrollY || document.documentElement.scrollTop;
             const imgWidth = sizeImg - scrollTop;
             $('.content_img').style.width = imgWidth > 0 ? imgWidth +'px' : 0;
             $('.content_img').style.opacity = imgWidth / sizeImg;
-            listSong.style.height = height + scrollTop + 'px';
+            const heightCoverChange = $('#cover').offsetHeight
+            const heightList = ele + scrollTop;
+            heightCover += 217;
+            if(heightList + heightCoverChange < body - 217) {
+                $('#list-song').style.height = heightList +'px'
+            } else {
+                $('#list-song').style.height = (ele + heightCover) + 'px';
+                heightCover = 0;
+            }
         }
     },
-
 
     // 
     start: function() {
