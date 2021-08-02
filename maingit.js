@@ -2,7 +2,8 @@
 const $ = document.querySelector.bind(document)
 const $$ = document.querySelectorAll.bind(document)
 
-
+const PLAYER_STORAGE_KEY = 'music player'
+const body = $('body')
 const intoFind = $('#finding')
 const find = $('#finding .input')
 const findBtn = $('#finding .search-btn')
@@ -15,20 +16,19 @@ const imgCurent = $('.content .img-song')
 const audio = $('#audio')
 const playPause = $('.play-pause-btn')
 const playPauseBox = $('.box-cover')
-//
 const progress = $('#overview .progress')
 const timeLine = $('#overview .progress .line-color')
 const thumb = $('#overview .progress .thumb')
 const thumbInto = $('#overview .progress .thumb .thumb-into')
 const boxTime = $('#overview .progress .box-time')
-//
 const previousSong = $('.previous-btn')
 const nextSong = $('.next-btn')
 const listSong = $('#list-song')
 const random = $('.random-btn')
 const listenAgain = $('.replay-btn')
-const body = $('body')
 const cover = $('#cover')
+const scrollBody = $('.body')
+const songs = $$('.body .song')
 /**
  * 1. Render song
  * 2. Scroll top
@@ -43,6 +43,35 @@ const cover = $('#cover')
  */
 
 const app = {
+// Sroll top
+    scrollTop: function() {
+        const sizeImg = $('.content_img').offsetWidth;
+        let heightCover = $('#cover').offsetHeight
+        const body = $('body').offsetHeight;
+        $('#list-song').style.height = body - heightCover - 16 - 217 + 'px';
+        const ele = $('#list-song').offsetHeight
+        document.onscroll = function() {
+            const scrollTop = window.scrollY || document.documentElement.scrollTop;
+            const imgWidth = sizeImg - scrollTop;
+            $('.content_img').style.width = imgWidth > 0 ? imgWidth +'px' : 0;
+            $('.content_img').style.opacity = imgWidth / sizeImg;
+            const heightCoverChange = $('#cover').offsetHeight
+            const heightList = ele + scrollTop;
+            heightCover += 217;
+            if(heightList + heightCoverChange < body - 217) {
+                $('#list-song').style.height = heightList +'px'
+            } else {
+                $('#list-song').style.height = (ele + heightCover) + 'px';
+                heightCover = 0;
+            }
+        }
+    },
+
+    isPlay: false,
+    currentSong: 0,
+    isRandom: false,
+    isAgain: false,
+    config: JSON.parse(localStorage.getItem(PLAYER_STORAGE_KEY)) || {},
     songs: [
         {
             id: 1,
@@ -115,78 +144,47 @@ const app = {
             song: './assest/song/Đen_-_Trốn_Tìm_ft_MTV_band_MV[YoutubeMP3.vn].mp3'
         }
     ],
-
-    // tìm kiếm
-    finding: function() {
-        const _this = this
-        // focus vào input
-        find.onclick = function() {
-            space.focus()
-            space.select()
-            result.style.display = 'block';
-        }
-        space.onfocus = function() {
-            find.style.borderRadius = '8px'
-            find.style.animation = 'focusinput 0.5s ease forwards';
-            setTimeout(function() {
-                cancel.innerHTML = `<p>Hủy<p>`;
-                cancel.style.animation = 'cancelinput ease 0.5s forwards';
-            }, 250)
-        }
-        space.onblur = function() {
-            find.style.removeProperty("animation")
-            find.style.borderRadius = '8px';
-            cancel.innerHTML = '';
-            result.style.display = 'none';
-        }
-
-        // khi điền chữ vào input
-        space.oninput = function(e) {
-            space.onselect = function() {
-                find.style.borderRadius = '8px 8px 0 0';
-            }
-            if(e.target.value === '') {
-                result.innerHTML = '';
-                find.style.borderRadius = '8px'
-            } else {
-                const htmls = _this.songs.map(function(song, index) {
-                    if(song.name.includes(e.target.value)) {
-                        return`
-                            <a href="#song${song.id}">
-                                <img src="${song.img}" alt="">
-                                <p>${song.name}</p>
-                            </a>
-                            `
-                    }
-                })
-                result.innerHTML = htmls.join('')
-                if(htmls !== []) {
-                    find.style.borderRadius = '8px 8px 0 0';
-                }
-            }
-        }
-
-        // khi chọn bài
-        result.onmousedown = function(e) {
-            space.onblur = function(e) {
-                e.preventDefault()
-            }
-            result.onclick = function() {
-                result.style.display = 'none';
-                find.style.borderRadius = '8px';
-            }
-            cancel.onclick = function() {
-                result.style.display = 'none';
-                find.style.borderRadius = '8px';
-            }
-            space.value = '';
-        }
+    setConfig: function(key, value) {
+        this.config[key] = value;
+        localStorage.setItem(PLAYER_STORAGE_KEY, JSON.stringify(this.config));
     },
-    isPlay: false,
-    currentSong: 0,
-    isRandom: false,
-    isAgain: false,
-    // tải bài hát
+// Render songs
+    rederSongs: function() {
+        const htmls = this.songs.map(song => 
+            `
+            <div id="song${song.id}" class="song song${song.id}">
+                <div>
+                    <div class="song_img">
+                        <div>
+                            <img src="${song.img}" alt="">
+                        </div>
+                    </div>
+                    <div class="song_content">
+                        <h4>${song.name}</h4>
+                        <p>${song.singer}</p>
+                    </div>
+                    <div class="current-song">
+                        <div class="cover-animation">
+                            <div></div>
+                            <div></div>
+                            <div></div>
+                        </div>
+                        <div class="cover-animation">
+                            <div></div>
+                            <div></div>
+                            <div></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="song_more">
+                    <i class="fas fa-ellipsis-h"></i>
+                </div>
+            </div>
+            `)
+        $('#list-song .body').innerHTML = htmls.join('')
+    },
+
+// load bài hát
     loadCurrentSong: function() {
         const currentSong = this.songs[this.currentSong];
         heading.innerHTML = `<h3>${currentSong.name}</h3>`
@@ -199,9 +197,10 @@ const app = {
         $(`.body .song${currentSong.id}`).classList.add('red-background');
     },
 
+// Các thao tác trên ứng dụng
     handleEvent: function() {
         const _this = this;
-        // CD roll
+    // CD roll
         const CDRoll = imgCurent.animate([
             { transform: 'rotate(360deg)' }
         ], {
@@ -210,7 +209,7 @@ const app = {
         })
         CDRoll.pause()
 
-        // play / pause bài hát
+    // play / pause bài hát
         playPauseBox.onclick = function() {
             playPauseBox.style.animation = 'activebtn 0.3s 2 alternate'
             if(_this.isPlay == false) {
@@ -232,7 +231,7 @@ const app = {
                 playPauseBox.style.removeProperty("animation")
             }, 601) 
 
-            // khi play
+        // khi play
             audio.onplay = function() {
                 _this.isPlay = true;
                 setTimeout(function() {
@@ -245,14 +244,14 @@ const app = {
                 CDRoll.play()
             }
 
-            // khi pause
+        // khi pause
             audio.onpause = function() {
                 _this.isPlay = false;
                 _this.decreaseVolume()
             }
         }
 
-        // process ---------------------------------------------------------------------------------------------------------------> 1
+    // process
 
         // box-time
         function increaseTime() {
@@ -298,13 +297,10 @@ const app = {
             audio.addEventListener('timeupdate', timeUp)
             _this.increaseVolume();
         })
-
         // click
         progress.onclick = function(e) {
             thumbInto.style.removeProperty("animation") 
             timeLine.style.width = `${e.offsetX}px`
-            console.log(timeLine.style.width)
-            console.log(e.clientX)
             audio.currentTime =  timeLine.offsetWidth / (progress.offsetWidth / audio.duration)
             CDRoll.currentTime = audio.currentTime % 25 * 1000;
             _this.increaseVolume();
@@ -315,7 +311,7 @@ const app = {
             }, 3000)
         }
 
-        // auto next
+    // auto next
         audio.ontimeupdate = function() {
             if(audio.currentTime === audio.duration) {
                 if(_this.isPlay == true) {
@@ -326,10 +322,11 @@ const app = {
                 _this.decreaseVolume()
                 CDRoll.currentTime = 0;
                 _this.toolNextSong();
+                _this.scrollintoview()
             }
         }
 
-        // next
+    // next
         nextSong.onclick = function() {
             if(_this.isPlay == true) {
                 audio.autoplay = true;
@@ -339,8 +336,9 @@ const app = {
             _this.decreaseVolume()
             CDRoll.currentTime = 0;
             _this.toolNextSong();
+            _this.scrollintoview()
         }
-        // previous
+    // previous
         previousSong.onclick = function() {
             if(_this.isPlay == true) {
                 audio.autoplay = true;
@@ -350,25 +348,28 @@ const app = {
             _this.decreaseVolume()
             CDRoll.currentTime = 0;
             _this.previousCurrentSong();
+            _this.scrollintoview()
         }
 
-        // ramdom
+    // ramdom
         random.onclick = function() {
             _this.isRandom = !_this.isRandom
+            _this.setConfig('isRandom', _this.isRandom);
             setTimeout(function() {
                 random.classList.toggle('active', _this.isRandom)
             }, 150)
         }
 
-        // listen again
+    // listen again
         listenAgain.onclick = function() {
             _this.isAgain = !_this.isAgain
+            _this.setConfig('isAgain', _this.isAgain);
             setTimeout(function() {
                 listenAgain.classList.toggle('active', _this.isAgain)
             }, 150)
         }
 
-        // next song by click
+    // next song by click
         $$('.body .song > div:nth-child(1)').forEach(function(song, index) {
             song.onclick = function() {
                 $(`.song${_this.songs[_this.currentSong].id} .cover-animation:nth-child(1)`).classList.remove('active')
@@ -380,18 +381,14 @@ const app = {
                 _this.decreaseVolume()
                 CDRoll.currentTime = 0;
                 _this.loadCurrentSong()
-            }
-        })
-        $$('.body .song > div:nth-child(2)').forEach(function(song, index) {
-            song.onclick = function() {
-                
-            }
-        })
+            }   // cách khác là: click vào body sau dó dùng closest để target vào các phần tử ngoại trừ phần tử more
+        }) 
     },
 
-    // next and previous
+    // callBack hướng đến handle event
+
     // nextCurrentSong
-    nextCurrentSong: function() {   //-------------------------------> 4
+    nextCurrentSong: function() {
         this.currentSong = this.currentSong + 1;
         timeLine.style.width = '0px';
         thumb.style.display = 'none';
@@ -401,7 +398,7 @@ const app = {
         this.loadCurrentSong();
     },
     // previousCurrentSong
-    previousCurrentSong: function() {   //-------------------------------> 5
+    previousCurrentSong: function() {
         this.currentSong -= 1;
         timeLine.style.width = '0px';
         thumb.style.display = 'none';
@@ -411,12 +408,20 @@ const app = {
         this.loadCurrentSong();
     },
 
+    listFake: [],
     // randomSong
     randomSong: function() {
+        const numberOfSongs = this.songs.length;
+        if(this.listFake.length === numberOfSongs) {
+            this.listFake = []
+        }
         let random;
         do {
             random = Math.floor(Math.random() * this.songs.length)
-        } while(random == this.currentSong);
+        } while(this.listFake.includes(random));
+        if(this.listFake.length < numberOfSongs) {
+            this.listFake.push(random)
+        }
         this.currentSong = random;
         this.loadCurrentSong();
     },
@@ -469,74 +474,138 @@ const app = {
             clearInterval(decrease)
         }, 501)
     },
-
-    // Render songs
-    rederSongs: function() {
-        const htmls = this.songs.map(song => 
-            `
-            <div id="song${song.id}" class="song song${song.id}">
-                <div>
-                    <div class="song_img">
-                        <div>
-                            <img src="${song.img}" alt="">
-                        </div>
-                    </div>
-                    <div class="song_content">
-                        <h4>${song.name}</h4>
-                        <p>${song.singer}</p>
-                    </div>
-                    <div class="current-song">
-                        <div class="cover-animation">
-                            <div></div>
-                            <div></div>
-                            <div></div>
-                        </div>
-                        <div class="cover-animation">
-                            <div></div>
-                            <div></div>
-                            <div></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="song_more">
-                    <i class="fas fa-ellipsis-h"></i>
-                </div>
-            </div>
-            `)
-        $('#list-song .body').innerHTML = htmls.join('')
+    
+    // scroll into view
+    scrollintoview: function() {
+        const scrollIntoView = $('.body .red-background')
+        setTimeout(function() {
+            scrollBody.scrollIntoView({
+                behavior: "smooth",
+                block: "center"
+            })
+        }, 300)
+        setTimeout(function() {
+            scrollIntoView.scrollIntoView({
+                behavior: "smooth",
+                block: "end"
+            })
+        }, 350)
     },
 
-    // Sroll top
-    scrollTop: function() {
-        const sizeImg = $('.content_img').offsetWidth;
-        let heightCover = $('#cover').offsetHeight
-        const body = $('body').offsetHeight;
-        $('#list-song').style.height = body - heightCover - 16 - 217 + 'px';
-        const ele = $('#list-song').offsetHeight
-        document.onscroll = function() {
-            const scrollTop = window.scrollY || document.documentElement.scrollTop;
-            const imgWidth = sizeImg - scrollTop;
-            $('.content_img').style.width = imgWidth > 0 ? imgWidth +'px' : 0;
-            $('.content_img').style.opacity = imgWidth / sizeImg;
-            const heightCoverChange = $('#cover').offsetHeight
-            const heightList = ele + scrollTop;
-            heightCover += 217;
-            if(heightList + heightCoverChange < body - 217) {
-                $('#list-song').style.height = heightList +'px'
+// tìm kiếm
+    finding: function() {
+        const _this = this
+        // focus vào input
+        find.onclick = function() {
+            space.focus()
+            space.select()
+            result.style.display = 'block';
+        }
+        space.onfocus = function() {
+            find.style.borderRadius = '8px'
+            find.style.animation = 'focusinput 0.5s ease forwards';
+            setTimeout(function() {
+                cancel.innerHTML = `<p>Hủy<p>`;
+                cancel.style.animation = 'cancelinput ease 0.5s forwards';
+            }, 250)
+        }
+        space.onblur = function() {
+            find.style.removeProperty("animation")
+            find.style.borderRadius = '8px';
+            cancel.innerHTML = '';
+            result.style.display = 'none';
+        }
+
+        // khi điền chữ vào input
+        space.oninput = function(e) {
+            space.onselect = function() {
+                find.style.borderRadius = '8px 8px 0 0';
+            }
+            if(e.target.value === '') {
+                result.innerHTML = '';
+                find.style.borderRadius = '8px'
             } else {
-                $('#list-song').style.height = (ele + heightCover) + 'px';
-                heightCover = 0;
+                const htmls = _this.songs.map(function(song, index) {
+                    if(song.name.includes(e.target.value)) {
+                        return`
+                            <div class="song${song.id}">
+                                <img src="${song.img}" alt="">
+                                <p>${song.name}</p>
+                            </div>
+                            `
+                    }
+                })
+                result.innerHTML = htmls.join('')
+                if(htmls !== []) {
+                    find.style.borderRadius = '8px 8px 0 0';
+                }
             }
         }
+
+        // khi chọn bài
+        result.onmousedown = function(e) {
+            space.onblur = function(e) {
+                e.preventDefault()
+            }
+            result.onclick = function(e) {
+                const scrollToSong  = e.target.closest('div').getAttribute('class');
+                _this.scrollWhenSearch(scrollToSong);
+                result.style.display = 'none';
+                find.style.borderRadius = '8px';
+            }
+            cancel.onclick = function() {
+                result.style.display = 'none';
+                find.style.borderRadius = '8px';
+            }
+            space.value = '';
+        }
+    },
+    // scroll into song when search
+    scrollWhenSearch: function(song) {
+        const scrollToSong = $(`.body .${song}`)
+        setTimeout(function() {
+            scrollBody.scrollIntoView({
+                behavior: "smooth",
+                block: "center"
+            })
+        }, 300)
+        setTimeout(function() {
+            scrollToSong.scrollIntoView({
+                behavior: "smooth",
+                block: "end"
+            })
+        }, 350)
     },
 
+
+// runconfig
+    loadConfig: function() {
+        this.isAgain = this.config.isAgain;
+        this.isRandom = this.config.isRandom; 
+    },
     // 
     start: function() {
-        this.finding()
+        // scroll screen
         this.scrollTop();
+
+        // run config init
+        this.loadConfig();
+
+        // show that song running
         this.rederSongs();
+
+        // load curent song
         this.loadCurrentSong()
+
+        // handle event 
         this.handleEvent()
+
+        // search box
+        this.finding()
+
+        // config init
+        random.classList.toggle('active', this.isRandom)
+        listenAgain.classList.toggle('active', this.isAgain)
     }
 }
 

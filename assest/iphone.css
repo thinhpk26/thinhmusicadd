@@ -133,7 +133,7 @@ h1 {
     z-index: 3;
 }
 
-#finding .result a {
+#finding .result div {
     display: flex;
     text-decoration: none;
 }
@@ -396,6 +396,10 @@ h1 {
     background-color: rgba(0, 0, 0, 0.2);
     display: flex;
     flex-direction: row;
+}
+
+.body .song:active {
+    opacity: 0.8;
 }
 
 .body .song.red-background {
